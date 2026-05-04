@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>京杭大运河沧州段生态修复时空数据协同查询系统</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+    header {
+      height: 62px;
+      background: linear-gradient(90deg, #123655, #1e5f8f);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    header span {
+      font-size: 13px;
+      font-weight: 400;
+      opacity: 0.88;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      height: calc(100vh - 62px);
+    }
+    .sidebar {
+      background: white;
+      border-right: 1px solid #d9e1ea;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .main {
+      display: grid;
+      grid-template-rows: 54% 46%;
+      min-width: 0;
+    }
+    #map { width: 100%; height: 100%; }
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 12px;
+      background: #eef3f8;
+      min-height: 0;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      min-width: 0;
+    }
+    .chart { width: 100%; height: 100%; min-height: 260px; }
+    label {
+      display: block;
+      margin-top: 13px;
+      margin-bottom: 6px;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid #c9d3df;
+      border-radius: 7px;
+      font-size: 14px;
+      background: white;
+    }
+    button {
+      margin-top: 12px;
+      background: #1e6fb8;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+    }
+    button:hover { background: #155a96; }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .secondary { background: #2e8b57; }
+    .secondary:hover { background: #237044; }
+    .danger { background: #9b3d3d; }
+    .danger:hover { background: #7c2f2f; }
+    .hint {
+      font-size: 13px;
+      color: #5f6b76;
+      line-height: 1.65;
+      background: #f9fbfd;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #e6edf4;
+    }
+    .status {
+      margin-top: 10px;
+      color: #0a7a35;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .stat, .assessment {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    .stat {
+      background: #eef6ff;
+      border-left: 4px solid #1e6fb8;
+    }
+    .assessment {
+      background: #f7fff1;
+      border-left: 4px solid #4caf50;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .good { background: #2e8b57; }
+    .mid { background: #f0a500; }
+    .bad { background: #c0392b; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .mini-card {
+      background: #f8fafc;
+      border: 1px solid #e6edf4;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+    }
+    .mini-card b {
+      display: block;
+      font-size: 17px;
+      margin-top: 4px;
+    }
+    .legend {
+      background: white;
+      padding: 8px 10px;
+      border-radius: 6px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+      line-height: 1.6;
+      font-size: 12px;
+    }
+    .legend i {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>京杭大运河沧州段生态修复时空数据协同查询系统</div>
+    <span>基于RSEI综合评价模型 · 2000–2025 · 多指标缓冲区联动查询</span>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <div class="hint">
+        <b>数据说明：</b><br>
+        ① 时序统计数据（CSV）：2000—2025年 NDVI、WET、NDBSI、LST、RSEI 指标统计结果。<br>
+        ② 空间缓冲区（GeoJSON）：京杭大运河沧州段 100m、300m、1000m 缓冲区范围。<br><br>
+        本系统已配置为打开网页后自动读取 data 文件夹中的 CSV 与 GeoJSON 数据。
+      </div>
+
+      <label style="display:none;">备用导入 RSEI 统计 CSV</label>
+      <input style="display:none;" type="file" id="csvFile" accept=".csv" />
+
+      <label style="display:none;">备用导入缓冲区 GeoJSON</label>
+      <input style="display:none;" type="file" id="geojsonFile" accept=".geojson,.json" />
+
+      <label>年份查询</label>
+      <select id="yearSelect"></select>
+
+      <label>缓冲区查询</label>
+      <select id="bufferSelect">
+        <option value="100m">100m</option>
+        <option value="300m">300m</option>
+        <option value="1000m">1000m</option>
+      </select>
+
+      <label>趋势指标</label>
+      <select id="metricSelect">
+        <option value="RSEI_mean">RSEI 综合生态指数</option>
+        <option value="NDVI_mean">NDVI 植被指数</option>
+        <option value="WET_mean">WET 湿度指数</option>
+        <option value="NDBSI_mean">NDBSI 裸地/建设指数</option>
+        <option value="LST_mean">LST 地表温度</option>
+      </select>
+
+      <button id="queryBtn">查询 / 刷新</button>
+      <div class="btn-row">
+        <button id="playBtn" class="secondary">播放年份</button>
+        <button id="stopBtn" class="danger">停止</button>
+      </div>
+
+      <div class="summary-grid">
+        <div class="mini-card">当前RSEI<b id="miniRsei">--</b></div>
+        <div class="mini-card">当前NDVI<b id="miniNdvi">--</b></div>
+        <div class="mini-card">当前NDBSI<b id="miniNdbsi">--</b></div>
+        <div class="mini-card">当前LST<b id="miniLst">--</b></div>
+      </div>
+
+      <div class="stat" id="resultBox">正在自动加载 CSV 和 GeoJSON 数据……</div>
+      <div class="assessment" id="assessmentBox">生态评价将在查询后生成。</div>
+      <div class="assessment" id="conclusionBox">生态恢复结论将在数据加载后自动生成。</div>
+      <div class="status" id="statusBox"></div>
+    </aside>
+
+    <main class="main">
+      <div id="map"></div>
+      <section class="charts">
+        <div class="card"><div id="trendChart" class="chart"></div></div>
+        <div class="card"><div id="compareChart" class="chart"></div></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let dataRows = [];
+    let geoLayer = null;
+    let playTimer = null;
+
+    const map = L.map('map').setView([38.3, 116.8], 9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML = `
+        <b>RSEI生态等级</b><br>
+        <i style="background:#2e8b57"></i>良好 ≥ 0.55<br>
+        <i style="background:#f0a500"></i>一般 0.45–0.55<br>
+        <i style="background:#c0392b"></i>偏弱 &lt; 0.45
+      `;
+      return div;
+    };
+    legend.addTo(map);
+
+    const trendChart = echarts.init(document.getElementById('trendChart'));
+    const compareChart = echarts.init(document.getElementById('compareChart'));
+
+    const yearSelect = document.getElementById('yearSelect');
+    const bufferSelect = document.getElementById('bufferSelect');
+    const metricSelect = document.getElementById('metricSelect');
+    const resultBox = document.getElementById('resultBox');
+    const assessmentBox = document.getElementById('assessmentBox');
+    const statusBox = document.getElementById('statusBox');
+
+    const miniRsei = document.getElementById('miniRsei');
+    const miniNdvi = document.getElementById('miniNdvi');
+    const miniNdbsi = document.getElementById('miniNdbsi');
+    const miniLst = document.getElementById('miniLst');
+    const conclusionBox = document.getElementById('conclusionBox');
+
+    const metricNames = {
+      RSEI_mean: 'RSEI综合生态指数',
+      NDVI_mean: 'NDVI植被指数',
+      WET_mean: 'WET湿度指数',
+      NDBSI_mean: 'NDBSI裸地/建设指数',
+      LST_mean: 'LST地表温度'
+    };
+
+    const metricAxis = {
+      RSEI_mean: { min: 0.35, max: 0.65 },
+      NDVI_mean: { min: 0.25, max: 0.65 },
+      WET_mean: { min: -0.20, max: 0.00 },
+      NDBSI_mean: { min: -0.22, max: 0.02 },
+      LST_mean: { min: 30, max: 42 }
+    };
+
+    function num(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function fmt(v, digits = 4) {
+      return v === null || v === undefined || Number.isNaN(v) ? '--' : Number(v).toFixed(digits);
+    }
+
+    function normalizeRow(raw) {
+      const year = num(raw.year);
+      const buffer = String(raw.buffer || '').trim();
+      if (!year || !buffer) return null;
+      return {
+        year,
+        buffer,
+        NDVI_mean: num(raw.NDVI_mean),
+        WET_mean: num(raw.WET_mean),
+        NDBSI_mean: num(raw.NDBSI_mean),
+        LST_mean: num(raw.LST_mean),
+        RSEI_mean: num(raw.RSEI_mean),
+        image_count: num(raw.image_count)
+      };
+    }
+
+    function cleanRows(rows) {
+      return rows
+        .map(normalizeRow)
+        .filter(r => r && ['100m','300m','1000m'].includes(r.buffer))
+        .sort((a, b) => a.year - b.year || a.buffer.localeCompare(b.buffer));
+    }
+
+    function fillYearOptions() {
+      const years = [...new Set(dataRows.map(r => r.year))].sort((a,b) => a-b);
+      yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+      if (years.length) yearSelect.value = years[years.length - 1];
+    }
+
+    function getCurrentRecord() {
+      const year = Number(yearSelect.value);
+      const buffer = bufferSelect.value;
+      return dataRows.find(r => r.year === year && r.buffer === buffer);
+    }
+
+    function rseiLevel(v) {
+      if (v == null) return {text: '未知', cls: 'mid', color: '#f0a500'};
+      if (v >= 0.55) return {text: '生态质量良好', cls: 'good', color: '#2e8b57'};
+      if (v >= 0.45) return {text: '生态质量一般', cls: 'mid', color: '#f0a500'};
+      return {text: '生态质量偏弱', cls: 'bad', color: '#c0392b'};
+    }
+
+    function updateResultBox() {
+      const r = getCurrentRecord();
+      if (!r) {
+        resultBox.innerHTML = '没有查询到对应数据。';
+        assessmentBox.innerHTML = '生态评价无法生成。';
+        miniRsei.textContent = '--';
+        miniNdvi.textContent = '--';
+        miniNdbsi.textContent = '--';
+        miniLst.textContent = '--';
+        updateConclusionBox();
+        return;
+      }
+
+      miniRsei.textContent = fmt(r.RSEI_mean, 4);
+      miniNdvi.textContent = fmt(r.NDVI_mean, 4);
+      miniNdbsi.textContent = fmt(r.NDBSI_mean, 4);
+      miniLst.textContent = fmt(r.LST_mean, 2) + '℃';
+
+      resultBox.innerHTML = `
+        <b>查询结果</b><br>
+        年份：${r.year}<br>
+        缓冲区：${r.buffer}<br>
+        RSEI均值：${fmt(r.RSEI_mean, 4)}<br>
+        NDVI均值：${fmt(r.NDVI_mean, 4)}<br>
+        WET均值：${fmt(r.WET_mean, 4)}<br>
+        NDBSI均值：${fmt(r.NDBSI_mean, 4)}<br>
+        LST均值：${fmt(r.LST_mean, 2)} ℃<br>
+        有效影像数量：${fmt(r.image_count, 0)}
+      `;
+
+      const rl = rseiLevel(r.RSEI_mean);
+      const ndbsiText = r.NDBSI_mean == null ? '未知' : (r.NDBSI_mean > -0.08 ? '建设/裸地压力相对较高' : '建设/裸地压力相对较低');
+      const lstText = r.LST_mean == null ? '未知' : (r.LST_mean > 36 ? '热环境压力较高' : '热环境压力可控');
+      assessmentBox.innerHTML = `
+        <b>生态状态评价</b><br>
+        综合评价：<span class="badge ${rl.cls}">${rl.text}</span><br>
+        压力判断：${ndbsiText}；${lstText}。<br>
+        说明：RSEI 越高表示生态质量越好；NDVI/WET 越高通常越好，NDBSI/LST 越高通常代表生态压力越强。
+      `;
+
+      updateConclusionBox();
+    }
+
+    function recoveryLevel(delta) {
+      if (delta === null || Number.isNaN(delta)) return { text: '无法判断', cls: 'mid' };
+      if (delta >= 0.05) return { text: '显著改善', cls: 'good' };
+      if (delta >= 0.02) return { text: '轻微改善', cls: 'mid' };
+      if (delta > -0.02) return { text: '基本稳定', cls: 'mid' };
+      return { text: '生态退化', cls: 'bad' };
+    }
+
+    function updateConclusionBox() {
+      if (!dataRows.length) {
+        conclusionBox.innerHTML = '生态恢复结论将在数据加载后自动生成。';
+        return;
+      }
+      const buffer = bufferSelect.value;
+      const rows = dataRows.filter(r => r.buffer === buffer).sort((a,b) => a.year - b.year);
+      const first = rows.find(r => r.year === 2000) || rows[0];
+      const last = rows.find(r => r.year === 2025) || rows[rows.length - 1];
+      if (!first || !last || first.RSEI_mean == null || last.RSEI_mean == null) return;
+
+      const delta = last.RSEI_mean - first.RSEI_mean;
+      const rate = first.RSEI_mean === 0 ? null : delta / first.RSEI_mean * 100;
+      const level = recoveryLevel(delta);
+
+      const ndviDelta = last.NDVI_mean - first.NDVI_mean;
+      const wetDelta = last.WET_mean - first.WET_mean;
+      const ndbsiDelta = last.NDBSI_mean - first.NDBSI_mean;
+      const lstDelta = last.LST_mean - first.LST_mean;
+
+      conclusionBox.innerHTML = `
+        <b>生态恢复成效判定</b><br>
+        对比年份：${first.year} → ${last.year}；缓冲区：${buffer}<br>
+        RSEI变化量：${fmt(delta, 4)}，变化率：${rate === null ? '--' : fmt(rate, 2) + '%'}<br>
+        恢复等级：<span class="badge ${level.cls}">${level.text}</span><br>
+        指标响应：NDVI ${ndviDelta >= 0 ? '提升' : '下降'} ${fmt(Math.abs(ndviDelta), 4)}；WET ${wetDelta >= 0 ? '提升' : '下降'} ${fmt(Math.abs(wetDelta), 4)}；NDBSI ${ndbsiDelta <= 0 ? '下降' : '上升'} ${fmt(Math.abs(ndbsiDelta), 4)}；LST ${lstDelta <= 0 ? '下降' : '上升'} ${fmt(Math.abs(lstDelta), 2)}℃。<br>
+        结论：研究区生态环境质量总体表现为“${level.text}”，可作为京杭大运河沧州段生态修复工程成效的量化支撑。
+      `;
+    }
+
+    function updateTrendChart() {
+      const buffer = bufferSelect.value;
+      const metric = metricSelect.value;
+      const rows = dataRows
+        .filter(r => r.buffer === buffer)
+        .sort((a,b) => a.year - b.year);
+
+      trendChart.setOption({
+        title: { text: `${buffer} ${metricNames[metric]} 年际变化`, left: 'center' },
+        tooltip: { trigger: 'axis' },
+        grid: { left: 58, right: 24, top: 58, bottom: 42 },
+        xAxis: { type: 'category', data: rows.map(r => r.year) },
+        yAxis: { 
+          type: 'value', 
+          min: metricAxis[metric]?.min,
+          max: metricAxis[metric]?.max,
+          scale: true
+        },
+        series: [{
+          name: metricNames[metric],
+          type: 'line',
+          smooth: true,
+          symbolSize: 6,
+          data: rows.map(r => r[metric])
+        }]
+      });
+    }
+
+    function updateCompareChart() {
+      const year = Number(yearSelect.value);
+      const buffers = ['100m', '300m', '1000m'];
+      const rows = buffers.map(buffer => dataRows.find(r => r.year === year && r.buffer === buffer));
+
+      compareChart.setOption({
+        title: { text: `${year} 年不同缓冲区多指标对比`, left: 'center' },
+        tooltip: { trigger: 'axis' },
+        legend: { top: 28 },
+        grid: { left: 58, right: 58, top: 82, bottom: 42 },
+        xAxis: { type: 'category', data: buffers },
+        yAxis: [
+          {
+            type: 'value',
+            name: '指数值',
+            min: -0.25,
+            max: 0.70
+          },
+          {
+            type: 'value',
+            name: 'LST ℃',
+            min: 30,
+            max: 42
+          }
+        ],
+        series: [
+          {
+            name: metricNames.RSEI_mean,
+            type: 'bar',
+            yAxisIndex: 0,
+            data: rows.map(r => r ? r.RSEI_mean : null)
+          },
+          {
+            name: metricNames.NDVI_mean,
+            type: 'bar',
+            yAxisIndex: 0,
+            data: rows.map(r => r ? r.NDVI_mean : null)
+          },
+          {
+            name: metricNames.WET_mean,
+            type: 'bar',
+            yAxisIndex: 0,
+            data: rows.map(r => r ? r.WET_mean : null)
+          },
+          {
+            name: metricNames.NDBSI_mean,
+            type: 'bar',
+            yAxisIndex: 0,
+            data: rows.map(r => r ? r.NDBSI_mean : null)
+          },
+          {
+            name: metricNames.LST_mean,
+            type: 'line',
+            yAxisIndex: 1,
+            symbolSize: 8,
+            data: rows.map(r => r ? r.LST_mean : null)
+          }
+        ]
+      });
+    }
+
+    function currentRseiForBuffer(buffer) {
+      const year = Number(yearSelect.value);
+      const r = dataRows.find(row => row.year === year && row.buffer === buffer);
+      return r ? r.RSEI_mean : null;
+    }
+
+    function styleFeature(feature) {
+      const b = String(feature.properties?.buffer || '').trim();
+      const selected = b === bufferSelect.value;
+      const rsei = currentRseiForBuffer(b);
+      const level = rseiLevel(rsei);
+      return {
+        color: selected ? '#111827' : level.color,
+        weight: selected ? 5 : 3,
+        fillColor: level.color,
+        fillOpacity: selected ? 0.35 : 0.20
+      };
+    }
+
+    function refreshMapStyle() {
+      if (geoLayer) geoLayer.setStyle(styleFeature);
+    }
+
+    function updateAll() {
+      updateResultBox();
+      updateTrendChart();
+      updateCompareChart();
+      refreshMapStyle();
+    }
+
+    const CSV_PATH = './data/Cangzhou_Canal_RSEI_Buffer_Stats_2000_2025_v2.csv';
+    const GEOJSON_PATH = './data/Cangzhou_Canal_RSEI_Buffers_100_300_1000m_v2.geojson';
+
+    function renderGeoJSON(geojson) {
+      if (geoLayer) map.removeLayer(geoLayer);
+      geoLayer = L.geoJSON(geojson, {
+        style: styleFeature,
+        onEachFeature: function(feature, layer) {
+          const b = String(feature.properties?.buffer || feature.properties?.Buffer || feature.properties?.name || '未知缓冲区').trim();
+          layer.bindPopup(`点击切换缓冲区：${b}`);
+          layer.on('click', function() {
+            if (['100m','300m','1000m'].includes(b)) {
+              bufferSelect.value = b;
+              updateAll();
+              layer.openPopup();
+            }
+          });
+        }
+      }).addTo(map);
+      map.fitBounds(geoLayer.getBounds());
+    }
+
+    async function loadCSVFromDataFolder() {
+      const res = await fetch(CSV_PATH);
+      if (!res.ok) throw new Error(`HTTP ${res.status}：${CSV_PATH}`);
+      const csvText = await res.text();
+      const results = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true
+      });
+      dataRows = cleanRows(results.data);
+      fillYearOptions();
+      updateAll();
+      return dataRows.length;
+    }
+
+    async function loadGeoJSONFromDataFolder() {
+      const res = await fetch(GEOJSON_PATH);
+      if (!res.ok) throw new Error(`HTTP ${res.status}：${GEOJSON_PATH}`);
+      const geojson = await res.json();
+      renderGeoJSON(geojson);
+      updateAll();
+    }
+
+    async function autoLoadData() {
+      statusBox.innerHTML = '正在自动加载 data 文件夹中的数据……';
+      try {
+        const count = await loadCSVFromDataFolder();
+        statusBox.innerHTML = `CSV自动加载成功：${count} 条记录；应为 26 × 3 = 78 条。`;
+      } catch (err) {
+        statusBox.innerHTML = 'CSV自动加载失败：' + err.message + '<br>请检查 data 文件夹中的 CSV 文件名是否完全一致。';
+      }
+
+      try {
+        await loadGeoJSONFromDataFolder();
+        statusBox.innerHTML += '<br>GeoJSON自动加载成功；地图颜色将随所选年份的 RSEI 等级变化。';
+      } catch (err) {
+        statusBox.innerHTML += '<br>GeoJSON自动加载失败：' + err.message + '<br>请检查 data 文件夹中的 GeoJSON 文件名是否完全一致。';
+      }
+    }
+
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          dataRows = cleanRows(results.data);
+          fillYearOptions();
+          statusBox.innerHTML = `CSV导入成功：${dataRows.length} 条记录；应为 26 × 3 = 78 条。`;
+          updateAll();
+        },
+        error: function(err) {
+          statusBox.innerHTML = 'CSV读取失败：' + err.message;
+        }
+      });
+    });
+
+    document.getElementById('geojsonFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const geojson = JSON.parse(evt.target.result);
+          renderGeoJSON(geojson);
+          statusBox.innerHTML += '<br>GeoJSON导入成功；地图颜色将随所选年份的 RSEI 等级变化。';
+          updateAll();
+        } catch (err) {
+          statusBox.innerHTML += '<br>GeoJSON读取失败：' + err.message;
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('queryBtn').addEventListener('click', updateAll);
+    yearSelect.addEventListener('change', updateAll);
+    bufferSelect.addEventListener('change', updateAll);
+    metricSelect.addEventListener('change', updateTrendChart);
+
+    document.getElementById('playBtn').addEventListener('click', function() {
+      if (!dataRows.length) return;
+      clearInterval(playTimer);
+      const years = [...yearSelect.options].map(o => o.value);
+      let i = years.indexOf(yearSelect.value);
+      playTimer = setInterval(() => {
+        i = (i + 1) % years.length;
+        yearSelect.value = years[i];
+        updateAll();
+      }, 850);
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', function() {
+      clearInterval(playTimer);
+    });
+
+    window.addEventListener('resize', function() {
+      trendChart.resize();
+      compareChart.resize();
+      map.invalidateSize();
+    });
+
+    autoLoadData();
+  </script>
+</body>
+</html>
