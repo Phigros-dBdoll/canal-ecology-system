@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://phigros-dbdoll.github.io/canal-ecology-system/sitemap.xml

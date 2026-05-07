@@ -3,7 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>京杭大运河沧州段生态修复时空数据协同查询系统</title>
+  <title>京杭大运河沧州段生态修复时空数据协同查询系统｜GEE · WebGIS · RSEI生态评价</title>
+  <meta name="description" content="基于Google Earth Engine与WebGIS构建的京杭大运河沧州段生态修复时空数据协同查询系统，实现2000—2025年NDVI、WET、NDBSI、LST、RSEI等生态指标动态分析、缓冲区统计与生态修复成效评价。" />
+  <meta name="keywords" content="京杭大运河,沧州段,生态修复,RSEI,NDVI,WET,NDBSI,LST,WebGIS,GEE,Google Earth Engine,遥感生态评价,时空分析,缓冲区分析,Landsat,生态监测" />
+  <meta name="author" content="华北理工大学 土木工程 / 测绘与GIS方向" />
+  <meta name="application-name" content="Canal Ecology WebGIS" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://phigros-dbdoll.github.io/canal-ecology-system/" />
+  <meta property="og:title" content="京杭大运河沧州段生态修复时空查询系统" />
+  <meta property="og:description" content="基于GEE与WebGIS的RSEI生态评价平台，支持2000—2025年生态指标时序查询和缓冲区分析。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://phigros-dbdoll.github.io/canal-ecology-system/" />
+  <meta name="twitter:card" content="summary" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "京杭大运河沧州段生态修复时空数据协同查询系统",
+    "applicationCategory": "WebGIS Application",
+    "operatingSystem": "Web Browser",
+    "description": "基于Google Earth Engine与WebGIS的京杭大运河沧州段生态修复时空分析系统，支持NDVI、WET、NDBSI、LST、RSEI等指标查询与缓冲区生态评价。",
+    "url": "https://phigros-dbdoll.github.io/canal-ecology-system/",
+    "keywords": "京杭大运河, 沧州段, RSEI, NDVI, WebGIS, GEE, 遥感生态评价"
+  }
+  </script>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -19,7 +42,7 @@
       color: #222;
     }
     header {
-      height: 62px;
+      min-height: 62px;
       background: linear-gradient(90deg, #123655, #1e5f8f);
       color: white;
       display: flex;
@@ -175,7 +198,15 @@
       margin-right: 6px;
       vertical-align: middle;
     }
-  </style>
+  
+    @media (max-width: 900px) {
+      header { height: auto; min-height: 72px; align-items: flex-start; flex-direction: column; gap: 4px; padding: 10px 16px; }
+      .container { grid-template-columns: 1fr; height: auto; }
+      .main { grid-template-rows: 420px auto; }
+      .charts { grid-template-columns: 1fr; }
+      .chart { min-height: 300px; }
+    }
+</style>
 </head>
 <body>
   <header>
@@ -190,6 +221,14 @@
 
   <div class="container">
     <aside class="sidebar">
+      <section class="hint" aria-label="项目关键词与研究说明" style="background:#fffdf4;color:#2b3a4a;border-left:4px solid #f0a500;">
+        <h1 style="font-size:18px;margin:0 0 8px 0;">京杭大运河沧州段生态修复时空查询系统</h1>
+        <h2 style="font-size:14px;margin:0 0 8px 0;">基于Google Earth Engine与WebGIS的RSEI生态评价平台</h2>
+        <b>研究背景：</b><br>
+        京杭大运河是重要的线性文化遗产与生态廊道。本系统面向京杭大运河沧州段生态修复工程，结合遥感生态指数与WebGIS交互查询，实现2000—2025年生态环境变化的时空分析与可视化展示。<br><br>
+        <b>核心关键词：</b><br>
+        RSEI生态评价、NDVI植被指数、WET湿度指数、NDBSI裸地/建设指数、LST地表温度、GEE遥感处理、WebGIS可视化、缓冲区分析、生态修复成效评价。
+      </section>
       <div class="hint" style="background:#f5f7fa;color:#2b3a4a;border-left:4px solid #1e6fb8;">
         <b>Project Overview (EN)</b><br>
         This is a Web GIS system for spatiotemporal analysis of canal ecology from 2000 to 2025.<br>
